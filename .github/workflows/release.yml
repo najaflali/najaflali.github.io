@@ -1,0 +1,47 @@
+name: Publish to Pages
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.release.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Process
+        env:
+          AD04A2: ${{ secrets.AD04A2 }}
+          BE5707: ${{ secrets.BE5707 }}
+        run: |
+          python3 -c "
+          import pathlib, sys, os
+          env_a = os.environ.get('AD04A2', '')
+          env_b = os.environ.get('BE5707', '')
+          doc = pathlib.Path('index.html')
+          body = doc.read_text(encoding='utf-8')
+          result = body
+          if env_a:
+              result = result.replace('<!-- c5564840b3157720b2c403c314dc8405 -->', env_a)
+          if env_b:
+              result = result.replace('<!-- 3606ba74a09aeb581e6e96 -->', env_b)
+          if result == body and (env_a or env_b):
+              sys.exit(1)
+          if result != body:
+              doc.write_text(result, encoding='utf-8')
+          "
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: release
+        uses: actions/deploy-pages@v4
